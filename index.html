@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Подключение к боту</title>
+<!--
+  Страница подключения Instagram/Threads для SMM Autopilot.
+  Meta возвращает сюда человека после «Разрешить» с одноразовым кодом в адресе.
+  Страница ТОЛЬКО показывает код — ничего не хранит и никуда не отправляет (нет внешних скриптов).
+  Код без секрета приложения бесполезен; ключи получает бот на компьютере владельца.
+-->
+<style>
+  :root{--bg:#F4F5F7;--card:#fff;--ink:#16181D;--muted:#5F6672;--line:#E2E5EA;--accent:#E52521;--ok:#1E8A4C}
+  @media (prefers-color-scheme:dark){:root{--bg:#111317;--card:#1A1D23;--ink:#ECEEF2;--muted:#9AA1AD;--line:#2A2F37;--accent:#FF4D47;--ok:#4FCB86}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:560px;margin:0 auto;padding:40px 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:16px}
+  h1{font-size:24px;line-height:1.2;margin:0}
+  p{margin:0;color:var(--muted)}
+  ol{margin:0;padding-left:22px;color:var(--muted)}
+  textarea{width:100%;min-height:110px;font:15px/1.4 ui-monospace,Consolas,monospace;padding:12px;border-radius:12px;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:none;word-break:break-all}
+  button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:14px 18px;background:var(--accent);color:#fff;cursor:pointer}
+  button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  .done{color:var(--ok);font-weight:700}
+  .err{color:var(--accent);font-weight:700}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <div class="card" id="ok" hidden>
+    <h1>Почти готово ✅</h1>
+    <ol>
+      <li>Нажмите «Скопировать код».</li>
+      <li>Вернитесь в Telegram, в чат с ботом.</li>
+      <li>Вставьте код и отправьте.</li>
+    </ol>
+    <textarea id="code" readonly aria-label="Код подключения"></textarea>
+    <button id="copy" type="button">Скопировать код</button>
+    <p id="copied" class="done" hidden>Скопировано. Теперь вставьте код в чат с ботом.</p>
+    <p>Код одноразовый и действует несколько минут. Никому, кроме своего бота, его не отправляйте.</p>
+  </div>
+
+  <div class="card" id="fail" hidden>
+    <h1>Не получилось</h1>
+    <p class="err" id="why"></p>
+    <p>Вернитесь в Telegram и нажмите «Подключить» ещё раз. В окне Meta нажмите «Разрешить» и отметьте свой аккаунт.</p>
+  </div>
+
+  <div class="card" id="empty" hidden>
+    <h1>Подключение к боту</h1>
+    <p>Эта страница открывается сама после входа через Facebook или Threads. Начните подключение в Telegram: ⚙️ Настройки → 🔗 Подключения.</p>
+  </div>
+</main>
+<script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var code = (q.get("code") || "").split("#")[0];
+    var state = q.get("state") || "";
+    var error = q.get("error_description") || q.get("error_message") || q.get("error_reason") || q.get("error");
+    var show = function (id) { document.getElementById(id).hidden = false; };
+    if (error) {
+      document.getElementById("why").textContent =
+        /denied|cancel/i.test(error) ? "Вы не нажали «Разрешить»." : error;
+      show("fail");
+    } else if (code && /^(ig|th)-[A-Za-z0-9]+$/.test(state)) {
+      var box = document.getElementById("code");
+      box.value = "connect:" + state + ":" + code;
+      show("ok");
+      document.getElementById("copy").addEventListener("click", function () {
+        var done = function () { show("copied"); };
+        var fallback = function () { box.focus(); box.select(); try { document.execCommand("copy"); done(); } catch (e) {} };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(box.value).then(done, fallback);
+        } else { fallback(); }
+      });
+      // Код не должен оставаться в адресной строке и истории браузера
+      history.replaceState(null, "", location.pathname);
+    } else {
+      show("empty");
+    }
+  })();
+</script>
+</body>
+</html>
